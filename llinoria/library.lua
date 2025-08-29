@@ -39,8 +39,6 @@ local Library = {
     Black = Color3.new(0, 0, 0);
     Font = Enum.Font.Code,
 
-    InScreen = false,
-
     OpenedFrames = {};
     DependencyBoxes = {};
 
@@ -163,61 +161,33 @@ function Library:CreateLabel(Properties, IsHud)
     return Library:Create(_Instance, Properties);
 end;
 
-function Library:MakeDraggable(Instance, Cutoff, IsMainWindow)
+function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
-    if Library.IsMobile == false then
-        Instance.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                if IsMainWindow == true and Library.CantDragForced == true then return; end;
-                local ObjPos = Vector2.new(Mouse.X - Instance.AbsolutePosition.X, Mouse.Y - Instance.AbsolutePosition.Y);
-                if ObjPos.Y > (Cutoff or 40) then return; end;
-                while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
-                    local newX = Mouse.X - ObjPos.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X)
-                    local newY = Mouse.Y - ObjPos.Y + (Instance.Size.Y.Offset * Instance.AnchorPoint.Y)
-                    if Library.InScreen then
-                        local vp = workspace.CurrentCamera.ViewportSize
-                        newX = math.clamp(newX, 0, vp.X - Instance.Size.X.Offset)
-                        newY = math.clamp(newY, 0, vp.Y - Instance.Size.Y.Offset)
-                    end
-                    Instance.Position = UDim2.new(0, newX, 0, newY);
-                    RenderStepped:Wait();
-                end;
+
+    Instance.InputBegan:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local ObjPos = Vector2.new(
+                Mouse.X - Instance.AbsolutePosition.X,
+                Mouse.Y - Instance.AbsolutePosition.Y
+            );
+
+            if ObjPos.Y > (Cutoff or 40) then
+                return;
             end;
-        end);
-    else
-        local Dragging, DraggingInput, DraggingStart, StartPosition;
-        InputService.TouchStarted:Connect(function(Input)
-            if IsMainWindow == true and Library.CantDragForced == true then Dragging = false return; end
-            if not Dragging and Library:MouseIsOverFrame(Instance, Input) and (IsMainWindow == true and (Library.CanDrag == true and Library.Window.Holder.Visible == true) or true) then
-                DraggingInput = Input;
-                DraggingStart = Input.Position;
-                StartPosition = Instance.Position;
-                local OffsetPos = Input.Position - DraggingStart;
-                if OffsetPos.Y > (Cutoff or 40) then Dragging = false; return; end;
-                Dragging = true;
+
+            while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+                Instance.Position = UDim2.new(
+                    0,
+                    Mouse.X - ObjPos.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X),
+                    0,
+                    Mouse.Y - ObjPos.Y + (Instance.Size.Y.Offset * Instance.AnchorPoint.Y)
+                );
+
+                RenderStepped:Wait();
             end;
-        end);
-        InputService.TouchMoved:Connect(function(Input)
-            if IsMainWindow == true and Library.CantDragForced == true then Dragging = false; return; end
-            if Input == DraggingInput and Dragging and (IsMainWindow == true and (Library.CanDrag == true and Library.Window.Holder.Visible == true) or true) then
-                local OffsetPos = Input.Position - DraggingStart;
-                local newX = StartPosition.X.Offset + OffsetPos.X
-                local newY = StartPosition.Y.Offset + OffsetPos.Y
-                if Library.InScreen then
-                    local vp = workspace.CurrentCamera.ViewportSize
-                    newX = math.clamp(newX, 0, vp.X - Instance.Size.X.Offset)
-                    newY = math.clamp(newY, 0, vp.Y - Instance.Size.Y.Offset)
-                end
-                Instance.Position = UDim2.new(StartPosition.X.Scale, newX, StartPosition.Y.Scale, newY);
-            end;
-        end);
-        InputService.TouchEnded:Connect(function(Input)
-            if Input == DraggingInput and Dragging then
-                Dragging = false;
-            end;
-        end);
-    end
-end
+        end;
+    end)
+end;
 
 function Library:AddToolTip(InfoStr, HoverInstance)
     local X, Y = Library:GetTextBounds(InfoStr, Library.Font, 14);
